@@ -47,7 +47,7 @@ def filtered_forts(origin, forts):
     sorted_forts = sorted(forts, lambda x,y : cmp(x[1],y[1]))
     return [x[0] for x in sorted_forts]
 
-def getNeighbors(loc, level=15, spread=700):
+def getNeighbors(loc, level=15, spread=1400):
     distance = VincentyDistance(meters=spread)
     center = (loc[0], loc[1], 0)
     p1 = distance.destination(point=center, bearing=45)

@@ -15,6 +15,7 @@ from pgoapi.exceptions import AuthException, NotLoggedInException, ServerBusyOrO
 from . import protos
 from pgoapi.protos.POGOProtos.Networking.Requests_pb2 import RequestType
 from pgoapi.protos.POGOProtos import Inventory_pb2 as Inventory
+from sets import Set
 
 import pickle
 import random
@@ -27,16 +28,174 @@ from collections import defaultdict
 import os.path
 
 logger = logging.getLogger(__name__)
-BAD_ITEM_IDS = [101,102,701,702,703] #Potion, Super Potion, RazzBerry, BlukBerry, Revive
+BAD_ITEM_IDS = [1,2,3,101,102,103,201,701,702,703] #Potion, Super Potion, RazzBerry, BlukBerry, Revive
 
 # Minimum amount of the bad items that you should have ... Modify based on your needs ... like if you need to battle a gym?
-MIN_BAD_ITEM_COUNTS = {Inventory.ITEM_POTION: 10,
-                       Inventory.ITEM_SUPER_POTION: 10,
+MIN_BAD_ITEM_COUNTS = {Inventory.ITEM_POKE_BALL: 10,
+                       Inventory.ITEM_GREAT_BALL: 50,
+                       Inventory.ITEM_ULTRA_BALL: 100,
+                       Inventory.ITEM_POTION: 0,
+                       Inventory.ITEM_SUPER_POTION: 0,
+                       Inventory.ITEM_HYPER_POTION: 50,
                        Inventory.ITEM_RAZZ_BERRY: 10,
                        Inventory.ITEM_BLUK_BERRY: 10,
                        Inventory.ITEM_NANAB_BERRY: 10,
                        Inventory.ITEM_REVIVE: 10}
-MIN_SIMILAR_POKEMON = 1
+MIN_SIMILAR_POKEMON = 2
+IGNORE_POKEMON = Set([
+    # 0, # MISSINGNO
+    # 1, # BULBASAUR
+    # 2, # IVYSAUR
+    # 3, # VENUSAUR
+    # 4, # CHARMANDER
+    # 5, # CHARMELEON
+    # 6, # CHARIZARD
+    # 7, # SQUIRTLE
+    # 8, # WARTORTLE
+    # 9, # BLASTOISE
+    10, # CATERPIE
+    11, # METAPOD
+    12, # BUTTERFREE
+    13, # WEEDLE
+    14, # KAKUNA
+    # 15, # BEEDRILL
+    # 16, # PIDGEY
+    17, # PIDGEOTTO
+    18, # PIDGEOT
+    19, # RATTATA
+    20, # RATICATE
+    21, # SPEAROW
+    22, # FEAROW
+    23, # EKANS
+    24, # ARBOK
+    # 25, # PIKACHU
+    # 26, # RAICHU
+    # 27, # SANDSHREW
+    # 28, # SANDLASH
+    # 29, # NIDORAN_FEMALE
+    # 30, # NIDORINA
+    # 31, # NIDOQUEEN
+    # 32, # NIDORAN_MALE
+    # 33, # NIDORINO
+    # 34, # NIDOKING
+    # 35, # CLEFARY
+    # 36, # CLEFABLE
+    # 37, # VULPIX
+    # 38, # NINETALES
+    # 39, # JIGGLYPUFF
+    # 40, # WIGGLYTUFF
+    41, # ZUBAT
+    42, # GOLBAT
+    # 43, # ODDISH
+    # 44, # GLOOM
+    # 45, # VILEPLUME
+    46, # PARAS
+    47, # PARASECT
+    48, # VENONAT
+    49, # VENOMOTH
+    # 50, # DIGLETT
+    # 51, # DUGTRIO
+    52, # MEOWTH
+    53, # PERSIAN
+    54, # PSYDUCK
+    55, # GOLDUCK
+    56, # MANKEY
+    # 57, # PRIMEAPE
+    # 58, # GROWLITHE
+    # 59, # ARCANINE
+    60, # POLIWAG
+    61, # POLIWHIRL
+    # 62, # POLIWRATH
+    # 63, # ABRA
+    # 64, # KADABRA
+    # 65, # ALAKHAZAM
+    # 66, # MACHOP
+    # 67, # MACHOKE
+    # 68, # MACHAMP
+    # 69, # BELLSPROUT
+    # 70, # WEEPINBELL
+    # 71, # VICTREEBELL
+    # 72, # TENTACOOL
+    # 73, # TENTACRUEL
+    # 74, # GEODUGE
+    # 75, # GRAVELER
+    # 76, # GOLEM
+    # 77, # PONYTA
+    # 78, # RAPIDASH
+    # 79, # SLOWPOKE
+    # 80, # SLOWBRO
+    # 81, # MAGNEMITE
+    # 82, # MAGNETON
+    # 83, # FARFETCHD
+    84, # DODUO
+    85, # DODRIO
+    # 86, # SEEL
+    # 87, # DEWGONG
+    # 88, # GRIMER
+    # 89, # MUK
+    # 90, # SHELLDER
+    # 91, # CLOYSTER
+    # 92, # GASTLY
+    # 93, # HAUNTER
+    # 94, # GENGAR
+    # 95, # ONIX
+    # 96, # DROWZEE
+    # 97, # HYPNO
+    # 98, # KRABBY
+    # 99, # KINGLER
+    # 100, # VOLTORB
+    # 101, # ELECTRODE
+    # 102, # EXEGGCUTE
+    # 103, # EXEGGUTOR
+    # 104, # CUBONE
+    # 105, # MAROWAK
+    # 106, # HITMONLEE
+    # 107, # HITMONCHAN
+    # 108, # LICKITUNG
+    # 109, # KOFFING
+    # 110, # WEEZING
+    # 111, # RHYHORN
+    # 112, # RHYDON
+    # 113, # CHANSEY
+    # 114, # TANGELA
+    # 115, # KANGASKHAN
+    # 116, # HORSEA
+    # 117, # SEADRA
+    # 118, # GOLDEEN
+    # 119, # SEAKING
+    # 120, # STARYU
+    # 121, # STARMIE
+    # 122, # MR_MIME
+    # 123, # SCYTHER
+    # 124, # JYNX
+    # 125, # ELECTABUZZ
+    # 126, # MAGMAR
+    # 127, # PINSIR
+    # 128, # TAUROS
+    # 129, # MAGIKARP
+    # 130, # GYARADOS
+    # 131, # LAPRAS
+    # 132, # DITTO
+    # 133, # EEVEE
+    # 134, # VAPOREON
+    # 135, # JOLTEON
+    # 136, # FLAREON
+    # 137, # PORYGON
+    # 138, # OMANYTE
+    # 139, # OMASTAR
+    # 140, # KABUTO
+    # 141, # KABUTOPS
+    # 142, # AERODACTYL
+    # 143, # SNORLAX
+    # 144, # ARTICUNO
+    # 145, # ZAPDOS
+    # 146, # MOLTRES
+    # 147, # DRATINI
+    # 148, # DRAGONAIR
+    # 149, # DRAGONITE
+    # 150, # MEWTWO
+    # 151, # MEW
+])
 
 
 class PGoApi:
@@ -141,14 +300,14 @@ class PGoApi:
             player_data = res['responses'].get('GET_PLAYER', {}).get('player_data', {})
             currencies = player_data.get('currencies', [])
             currency_data = ",".join(map(lambda x: "{0}: {1}".format(x.get('name', 'NA'), x.get('amount', 'NA')), currencies))
-            self.log.info("Username: %s, Currencies: %s", player_data.get('username', 'NA'), currency_data)
+#            self.log.info("Username: %s, Currencies: %s", player_data.get('username', 'NA'), currency_data)
 
         if 'GET_INVENTORY' in res['responses']:
             with open("accounts/%s.json" % self.config['username'], "w") as f:
                 res['responses']['lat'] = self._posf[0]
                 res['responses']['lng'] = self._posf[1]
                 f.write(json.dumps(res['responses'], indent=2))
-            self.log.info(get_inventory_data(res, self.pokemon_names))
+#            self.log.info(get_inventory_data(res, self.pokemon_names))
             self.log.debug(self.cleanup_inventory(res['responses']['GET_INVENTORY']['inventory_delta']['inventory_items']))
 
         self._heartbeat_number += 1
@@ -161,7 +320,7 @@ class PGoApi:
             for i,next_point in enumerate(get_increments(self._posf,step,self.config.get("STEP_SIZE", 200))):
                 self.set_position(*next_point)
                 self.heartbeat()
-                self.log.info("Sleeping before next heartbeat")
+#                self.log.info("Sleeping before next heartbeat")
                 sleep(2) # If you want to make it faster, delete this line... would not recommend though
                 while self.catch_near_pokemon():
                     sleep(1) # If you want to make it faster, delete this line... would not recommend though
@@ -198,6 +357,7 @@ class PGoApi:
     def catch_near_pokemon(self):
         map_cells = self.nearby_map_objects()['responses']['GET_MAP_OBJECTS']['map_cells']
         pokemons = PGoApi.flatmap(lambda c: c.get('catchable_pokemons', []), map_cells)
+        pokemons = [pokemon for pokemon in pokemons if pokemon['pokemon_id'] not in IGNORE_POKEMON]
 
         # catch first pokemon:
         origin = (self._posf[0], self._posf[1])

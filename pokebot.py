@@ -70,9 +70,9 @@ def main():
         return
 
     if config.debug:
-        logging.getLogger("requests").setLevel(logging.INFO)
-        logging.getLogger("pgoapi").setLevel(logging.INFO)
-        logging.getLogger("rpc_api").setLevel(logging.INFO)
+        # logging.getLogger("requests").setLevel(logging.INFO)
+        logging.getLogger("pgoapi").setLevel(logging.DEBUG)
+        # logging.getLogger("rpc_api").setLevel(logging.INFO)
 
     position = get_pos_by_name(config.location)
     if config.test:
