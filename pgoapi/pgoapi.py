@@ -417,10 +417,10 @@ class PGoApi:
                               inventory_item['inventory_item_data']['pokemon_family']['family_id'] == poke_info['candy_id'] and
                               inventory_item['inventory_item_data']['pokemon_family']['candy'] > ((poke_info['max_evolves_candies'] or 0) + config.get("KEEP_CANDIES", 0))
                             ):
-                              self.log.info("Evolving pokemon: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name')
+                              self.log.info("Evolving pokemon: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
                               self.evolve_pokemon(pokemon_id = pokemon['id'])
                         self.log.debug("Releasing pokemon: %s", pokemon)
-                        self.log.info("Releasing pokemon: %s IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name', pokemonIVPercentage(pokemon))
+                        self.log.info("Releasing pokemon: %s IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], pokemonIVPercentage(pokemon))
                         self.release_pokemon(pokemon_id = pokemon["id"])
 
         if self.RELEASE_DUPLICATES:
@@ -429,7 +429,7 @@ class PGoApi:
                     pokemons = sorted(pokemons, lambda x,y: cmp(self.pokemon_data[str(x['pokemon_id'])]['name'], self.pokemon_data[str(y['pokemon_id'])]['name']))
                     last_pokemon = pokemons[0]
                     for pokemon in pokemons[MIN_SIMILAR_POKEMON:]:
-                        if self.pokemon_data[str(pokemon['pokemon_id'])]['name' == self.pokemon_data[str(last_pokemon['pokemon_id'])]['name']:
+                        if self.pokemon_data[str(pokemon['pokemon_id'])]['name'] == self.pokemon_data[str(last_pokemon['pokemon_id'])]['name']:
                             # two of the same pokemon, compare and release smaller of the two
                             if pokemon['cp'] > last_pokemon['cp']:
                                 if pokemon['cp'] * self.DUPLICATE_CP_FORGIVENESS > last_pokemon['cp']:
@@ -442,7 +442,7 @@ class PGoApi:
                                 if last_pokemon['cp'] * self.DUPLICATE_CP_FORGIVENESS > pokemon['cp']:
                                     # release the lesser!
                                     self.log.debug("Releasing pokemon: %s", pokemon)
-                                    self.log.info("Releasing pokemon: %s IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name', pokemonIVPercentage(pokemon))
+                                    self.log.info("Releasing pokemon: %s IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], pokemonIVPercentage(pokemon))
                                     self.release_pokemon(pokemon_id = pokemon["id"])
 
                         else:
@@ -493,12 +493,12 @@ class PGoApi:
                 capture_status = catch_attempt['status']
                 if capture_status == 1:
                     self.log.debug("Caught Pokemon: : %s", catch_attempt)
-                    self.log.info("Caught Pokemon:  %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name')
+                    self.log.info("Caught Pokemon:  %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
                     sleep(2) # If you want to make it faster, delete this line... would not recommend though
                     return catch_attempt
                 elif capture_status != 2:
                     self.log.debug("Failed Catch: : %s", catch_attempt)
-                    self.log.info("Failed to Catch Pokemon:  %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name')
+                    self.log.info("Failed to Catch Pokemon:  %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
                 return False
                 sleep(2) # If you want to make it faster, delete this line... would not recommend though
         return False
