@@ -78,9 +78,9 @@ def main():
     if config.test:
         return
 
-    pokemon_names = json.load(open("name_id.json"))
+    pokemon_data = json.load(open("pokemon_data.json"))
 
-    api = PGoApi(config.__dict__, pokemon_names, position)
+    api = PGoApi(config.__dict__, pokemon_data, position)
 
     if not api.login(config.auth_service, config.username, config.password, config.cached):
         return
