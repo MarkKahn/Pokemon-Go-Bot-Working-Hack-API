@@ -407,21 +407,21 @@ class PGoApi:
                     self.log.info("Recycling Item_ID {0}, item count {1}".format(item['item_id'], recycle_count))
                     self.recycle_inventory_item(item_id=item['item_id'], count=recycle_count)
 
+        # evolve the strongest pokemon if possible
         for pokemons in caught_pokemon.values():
             if len(pokemons) > MIN_SIMILAR_POKEMON:
                 pokemons = sorted(pokemons, lambda x,y: cmp(x['cp']*pokemonIVPercentage(x), y['cp']*pokemonIVPercentage(y)), reverse=True)
-                for pokemon in pokemons[MIN_SIMILAR_POKEMON:]:
-                    if 'cp' in pokemon and ((pokemonIVPercentage(pokemon) < self.MIN_KEEP_IV) or (pokemon['cp'] < self.KEEP_CP_OVER)):
-                        poke_info = self.pokemon_data[str(pokemon['pokemon_id'])]
-                        for inventory_item in inventory_items:
-                            if ("pokemon_family" in inventory_item['inventory_item_data'] and
-                              "evolves_to" in poke_info and
-                              inventory_item['inventory_item_data']['pokemon_family']['family_id'] == poke_info['candy_id'] and
-                              inventory_item['inventory_item_data']['pokemon_family']['candy'] > ((poke_info.get('max_evolve_candies') or poke_info.get('candies') or 0) + self.config.get("KEEP_CANDIES", 0))
-                            ):
-                              self.log.info("Evolving pokemon: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
-                              self.evolve_pokemon(pokemon_id = pokemon['id'])
-                              caught_pokemon[pokemon["pokemon_id"]].remove(pokemon)
+                for pokemon in pokemons[:len(pokemons) - MIN_SIMILAR_POKEMON]:
+                    poke_info = self.pokemon_data[str(pokemon['pokemon_id'])]
+                    for inventory_item in inventory_items:
+                        if ("pokemon_family" in inventory_item['inventory_item_data'] and
+                          "evolves_to" in poke_info and
+                          inventory_item['inventory_item_data']['pokemon_family']['family_id'] == poke_info['candy_id'] and
+                          inventory_item['inventory_item_data']['pokemon_family']['candy'] > ((poke_info.get('max_evolve_candies') or poke_info.get('candies') or 0) + self.config.get("KEEP_CANDIES", 0))
+                        ):
+                          self.log.info("Evolving pokemon: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
+                          self.evolve_pokemon(pokemon_id = pokemon['id'])
+                          caught_pokemon[pokemon["pokemon_id"]].remove(pokemon)
 
         # sort and release all weaker pokemon
         if self.RELEASE_DUPLICATES:
