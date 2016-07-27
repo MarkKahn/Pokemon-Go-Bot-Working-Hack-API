@@ -342,7 +342,7 @@ class PGoApi:
             self.walk_to((fort['latitude'], fort['longitude']))
             position = self._posf # FIXME ?
             res = self.fort_search(fort_id = fort['id'], fort_latitude=fort['latitude'],fort_longitude=fort['longitude'],player_latitude=position[0],player_longitude=position[1]).call()['responses']['FORT_SEARCH']
-            self.log.debug("Fort spinned: %s", res)
+            self.log.info("Fort spinned: %s", res)
             if 'lure_info' in fort:
                 encounter_id = fort['lure_info']['encounter_id']
                 fort_id = fort['lure_info']['fort_id']
@@ -409,7 +409,7 @@ class PGoApi:
 
         for pokemons in caught_pokemon.values():
             if len(pokemons) > MIN_SIMILAR_POKEMON:
-                pokemons = sorted(pokemons, lambda x,y: cmp(x['cp']*pokemonIVPercentage(x),y['cp']*pokemonIVPercentage(y)),reverse=True)
+                pokemons = sorted(pokemons, lambda x,y: cmp(x['cp']*pokemonIVPercentage(x), y['cp']*pokemonIVPercentage(y)), reverse=True)
                 for pokemon in pokemons[MIN_SIMILAR_POKEMON:]:
                     if 'cp' in pokemon and ((pokemonIVPercentage(pokemon) < self.MIN_KEEP_IV) or (pokemon['cp'] < self.KEEP_CP_OVER)):
                         poke_info = self.pokemon_data[str(pokemon['pokemon_id'])]
@@ -427,7 +427,7 @@ class PGoApi:
         if self.RELEASE_DUPLICATES:
             for pokemons in caught_pokemon.values():
                 if len(pokemons) > MIN_SIMILAR_POKEMON:
-                    pokemons = sorted(pokemons, lambda x,y: cmp(x['cp'] * pokemonIVPercentage(x), y['cp'] * pokemonIVPercentage(y)))
+                    pokemons = sorted(pokemons, lambda x,y: cmp(x['cp'] * pokemonIVPercentage(x), y['cp'] * pokemonIVPercentage(y)), reverse=True)
                     for pokemon in pokemons[MIN_SIMILAR_POKEMON:]:
                         self.log.debug("Releasing pokemon: %s", pokemon)
                         self.log.info("Releasing pokemon: %s CP: %s, IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], str(pokemon['cp']), pokemonIVPercentage(pokemon))
