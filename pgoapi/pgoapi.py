@@ -394,7 +394,7 @@ class PGoApi:
             inventory_items = self.get_inventory().call()['responses']['GET_INVENTORY']['inventory_delta']['inventory_items']
         caught_pokemon = defaultdict(list)
         for inventory_item in inventory_items:
-            if "pokemon_data" in  inventory_item['inventory_item_data']:
+            if "pokemon_data" in inventory_item['inventory_item_data']:
                 # is a pokemon:
                 pokemon = inventory_item['inventory_item_data']['pokemon_data']
                 if 'cp' in pokemon and "favorite" not in pokemon:
@@ -408,46 +408,29 @@ class PGoApi:
 
         for pokemons in caught_pokemon.values():
             if len(pokemons) > MIN_SIMILAR_POKEMON:
-                pokemons = sorted(pokemons, lambda x,y: cmp(x['cp'],y['cp']),reverse=True)
+                pokemons = sorted(pokemons, lambda x,y: cmp(x['cp']*pokemonIVPercentage(x),y['cp']*pokemonIVPercentage(y)),reverse=True)
                 for pokemon in pokemons[MIN_SIMILAR_POKEMON:]:
                     if 'cp' in pokemon and ((pokemonIVPercentage(pokemon) < self.MIN_KEEP_IV) or (pokemon['cp'] < self.KEEP_CP_OVER)):
-                        poke_info = self.pokemon_data[pokemon['id']]
+                        poke_info = self.pokemon_data[str(pokemon['pokemon_id'])]
                         for inventory_item in inventory_items:
                             if ("pokemon_family" in inventory_item['inventory_item_data'] and
+                              "evolves_to" in poke_info and
                               inventory_item['inventory_item_data']['pokemon_family']['family_id'] == poke_info['candy_id'] and
-                              inventory_item['inventory_item_data']['pokemon_family']['candy'] > ((poke_info['max_evolves_candies'] or 0) + config.get("KEEP_CANDIES", 0))
+                              inventory_item['inventory_item_data']['pokemon_family']['candy'] > ((poke_info.get('max_evolve_candies') or poke_info.get('candies') or 0) + self.config.get("KEEP_CANDIES", 0))
                             ):
                               self.log.info("Evolving pokemon: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
                               self.evolve_pokemon(pokemon_id = pokemon['id'])
-                        self.log.debug("Releasing pokemon: %s", pokemon)
-                        self.log.info("Releasing pokemon: %s IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], pokemonIVPercentage(pokemon))
-                        self.release_pokemon(pokemon_id = pokemon["id"])
+                              caught_pokemon[pokemon["pokemon_id"]].remove(pokemon)
 
+        # sort and release all weaker pokemon
         if self.RELEASE_DUPLICATES:
             for pokemons in caught_pokemon.values():
                 if len(pokemons) > MIN_SIMILAR_POKEMON:
-                    pokemons = sorted(pokemons, lambda x,y: cmp(self.pokemon_data[str(x['pokemon_id'])]['name'], self.pokemon_data[str(y['pokemon_id'])]['name']))
-                    last_pokemon = pokemons[0]
+                    pokemons = sorted(pokemons, lambda x,y: cmp(x['cp'] * pokemonIVPercentage(x), y['cp'] * pokemonIVPercentage(y)))
                     for pokemon in pokemons[MIN_SIMILAR_POKEMON:]:
-                        if self.pokemon_data[str(pokemon['pokemon_id'])]['name'] == self.pokemon_data[str(last_pokemon['pokemon_id'])]['name']:
-                            # two of the same pokemon, compare and release smaller of the two
-                            if pokemon['cp'] > last_pokemon['cp']:
-                                if pokemon['cp'] * self.DUPLICATE_CP_FORGIVENESS > last_pokemon['cp']:
-                                    # release the lesser!
-                                    self.log.debug("Releasing pokemon: %s", last_pokemon)
-                                    self.log.info("Releasing pokemon: %s IV: %s", self.pokemon_data[str(last_pokemon['pokemon_id'])]['name'], pokemonIVPercentage(pokemon))
-                                    self.release_pokemon(pokemon_id = last_pokemon["id"])
-                                last_pokemon = pokemon
-                            else:
-                                if last_pokemon['cp'] * self.DUPLICATE_CP_FORGIVENESS > pokemon['cp']:
-                                    # release the lesser!
-                                    self.log.debug("Releasing pokemon: %s", pokemon)
-                                    self.log.info("Releasing pokemon: %s IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], pokemonIVPercentage(pokemon))
-                                    self.release_pokemon(pokemon_id = pokemon["id"])
-
-                        else:
-                            last_pokemon = pokemon
-
+                        self.log.debug("Releasing pokemon: %s", pokemon)
+                        self.log.info("Releasing pokemon: %s IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], pokemonIVPercentage(pokemon))
+                        self.release_pokemon(pokemon_id = pokemon["id"])
 
         return self.call()
 
