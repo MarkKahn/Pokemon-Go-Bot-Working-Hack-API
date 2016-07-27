@@ -376,6 +376,7 @@ class PGoApi:
         return self.get_map_objects(latitude=position[0], longitude=position[1], since_timestamp_ms=[0]*len(neighbors), cell_id=neighbors).call()
 
     def attempt_catch(self,encounter_id,spawn_point_guid): #Problem here... add 4 if you have master ball
+        inventory_items = self.get_inventory().call()['responses']['GET_INVENTORY']['inventory_delta']['inventory_items']
         for i in range(1,3): # Range 1...4 iff you have master ball `range(1,4)`
             r = self.catch_pokemon(
                 normalized_reticle_size= 1.950,
@@ -399,7 +400,7 @@ class PGoApi:
                 pokemon = inventory_item['inventory_item_data']['pokemon_data']
                 if 'cp' in pokemon and "favorite" not in pokemon:
                     caught_pokemon[pokemon["pokemon_id"]].append(pokemon)
-            elif "item" in  inventory_item['inventory_item_data']:
+            elif "item" in inventory_item['inventory_item_data']:
                 item = inventory_item['inventory_item_data']['item']
                 if item['item_id'] in MIN_BAD_ITEM_COUNTS and "count" in item and item['count'] > MIN_BAD_ITEM_COUNTS[item['item_id']]:
                     recycle_count = item['count'] - MIN_BAD_ITEM_COUNTS[item['item_id']]
@@ -429,7 +430,7 @@ class PGoApi:
                     pokemons = sorted(pokemons, lambda x,y: cmp(x['cp'] * pokemonIVPercentage(x), y['cp'] * pokemonIVPercentage(y)))
                     for pokemon in pokemons[MIN_SIMILAR_POKEMON:]:
                         self.log.debug("Releasing pokemon: %s", pokemon)
-                        self.log.info("Releasing pokemon: %s IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], pokemonIVPercentage(pokemon))
+                        self.log.info("Releasing pokemon: %s CP: %s, IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], str(pokemon['cp']), pokemonIVPercentage(pokemon))
                         self.release_pokemon(pokemon_id = pokemon["id"])
 
         return self.call()
