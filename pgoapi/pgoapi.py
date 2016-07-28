@@ -211,13 +211,11 @@ class PGoApi:
         self._api_endpoint = None
         self.config = config
         self.set_position(*start_pos)
-        self.MIN_KEEP_IV = config.get("MIN_KEEP_IV", 0)
-        self.KEEP_CP_OVER = config.get("KEEP_CP_OVER", 0)
         self.RELEASE_DUPLICATES = config.get("RELEASE_DUPLICATE", 0)
-        self.DUPLICATE_CP_FORGIVENESS = config.get("DUPLICATE_CP_FOREGIVENESS", 0)
         self._req_method_list = []
         self._heartbeat_number = 5
         self.pokemon_data = pokemon_data
+        self.do_catch_pokemon = config.get("CATCH_POKEMON", True)
 
     def call(self):
         if not self._req_method_list:
@@ -342,7 +340,7 @@ class PGoApi:
             self.walk_to((fort['latitude'], fort['longitude']))
             position = self._posf # FIXME ?
             res = self.fort_search(fort_id = fort['id'], fort_latitude=fort['latitude'],fort_longitude=fort['longitude'],player_latitude=position[0],player_longitude=position[1]).call()['responses']['FORT_SEARCH']
-            self.log.info("Fort spinned: %s", res)
+            # self.log.info("Fort spinned: %s", res)
             if 'lure_info' in fort:
                 encounter_id = fort['lure_info']['encounter_id']
                 fort_id = fort['lure_info']['fort_id']
@@ -365,8 +363,6 @@ class PGoApi:
         self.log.debug("Nearby pokemon: : %s", pokemon_distances)
         for pokemon_distance in pokemon_distances:
             target = pokemon_distance
-            self.log.debug("Catching pokemon: : %s, distance: %f meters", target[0], target[1])
-            self.log.info("Catching Pokemon: %s", self.pokemon_data[str(target[0]['pokemon_id'])]['name'])
             return self.encounter_pokemon(target[0])
         return False
 
@@ -428,6 +424,7 @@ class PGoApi:
             for pokemons in caught_pokemon.values():
                 if len(pokemons) > MIN_SIMILAR_POKEMON:
                     pokemons = sorted(pokemons, lambda x,y: cmp(x['cp'] * pokemonIVPercentage(x), y['cp'] * pokemonIVPercentage(y)), reverse=True)
+                    self.log.info('Duplicate Pokemon: %s', pokemons)
                     for pokemon in pokemons[MIN_SIMILAR_POKEMON:]:
                         self.log.debug("Releasing pokemon: %s", pokemon)
                         self.log.info("Releasing pokemon: %s CP: %s, IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], str(pokemon['cp']), pokemonIVPercentage(pokemon))
@@ -469,7 +466,7 @@ class PGoApi:
         spawn_point_id = pokemon['spawn_point_id']
         position = self._posf
         encounter = self.encounter(encounter_id=encounter_id,spawn_point_id=spawn_point_id,player_latitude=position[0],player_longitude=position[1]).call()['responses']['ENCOUNTER']
-        self.log.info("Started Encounter: %s", encounter)
+        # self.log.info("Started Encounter: %s", encounter)
         if encounter['status'] == 1:
             capture_status = -1
             while capture_status != 0 and capture_status != 3:
