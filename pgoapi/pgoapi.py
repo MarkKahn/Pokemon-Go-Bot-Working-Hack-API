@@ -7,7 +7,7 @@ import re
 from itertools import chain, imap
 
 import requests
-from .utilities import f2i, h2f
+from .utilities import f2i, h2f, countmatching
 from pgoapi.rpc_api import RpcApi
 from pgoapi.auth_ptc import AuthPtc
 from pgoapi.auth_google import AuthGoogle
@@ -217,6 +217,7 @@ class PGoApi:
         self._heartbeat_number = 5
         self.pokemon_data = pokemon_data
         self.do_catch_pokemon = config.get("CATCH_POKEMON", True)
+        self.min_probability_throw = config.get("MIN_PROBABILITY_THROW", 0.5)
 
     def call(self):
         if not self._req_method_list:
@@ -256,6 +257,7 @@ class PGoApi:
 
     def get_position(self):
         return (self._position_lat, self._position_lng, self._position_alt)
+
     def set_position(self, lat, lng, alt):
         self.log.debug('Set Position - Lat: %s Long: %s Alt: %s', lat, lng, alt)
         self._posf = (lat,lng,alt)
@@ -284,6 +286,7 @@ class PGoApi:
             return function
         else:
             raise AttributeError
+
     def heartbeat(self):
         self.get_player()
         if self._heartbeat_number % 10 == 0:
@@ -372,9 +375,31 @@ class PGoApi:
         neighbors = getNeighbors(self._posf)
         return self.get_map_objects(latitude=position[0], longitude=position[1], since_timestamp_ms=[0]*len(neighbors), cell_id=neighbors).call()
 
-    def attempt_catch(self,encounter_id,spawn_point_guid): #Problem here... add 4 if you have master ball
+    def count_pokeballs(self):
+        pokeballs = [0] * 4
         inventory_items = self.get_inventory().call()['responses']['GET_INVENTORY']['inventory_delta']['inventory_items']
-        for i in range(1,3): # Range 1...4 iff you have master ball `range(1,4)`
+        for inventory_item in inventory_items:
+            if 'inventory_item_data' in inventory_item:
+                item = inventory_item['inventory_item_data']
+                if 'item' in item:
+                    item_id = item['item']['item_id']
+                    if item_id < 5:
+                        pokeballs[item_id-1] += item['item'].get('count') or 1
+
+        return pokeballs
+
+    def attempt_catch(self,encounter_id, spawn_point_guid, encounter):
+        inventory_items = self.get_inventory().call()['responses']['GET_INVENTORY']['inventory_delta']['inventory_items']
+        pokeballs = self.count_pokeballs()
+        probabilities = encounter['capture_probability']['capture_probability']
+        for i in range(1,4):
+            if (
+                not pokeballs[i - 1] or
+                ((i<4) and pokeballs[i] and (probabilities[i] < self.min_probability_throw))
+            ):
+                continue
+
+            self.log.info('Throwing %s', ['PokeBall', 'GreatBall', 'UltraBall', 'MasterBall'][i])
             r = self.catch_pokemon(
                 normalized_reticle_size= 1.950,
                 pokeball = i,
@@ -444,7 +469,7 @@ class PGoApi:
              if resp['result'] == 1:
                  capture_status = -1
                  while capture_status != 0 and capture_status != 3:
-                     catch_attempt = self.attempt_catch(encounter_id,fort_id)
+                     catch_attempt = self.attempt_catch(encounter_id, fort_id, resp)
                      capture_status = catch_attempt['status']
                      if capture_status == 1:
                          self.log.debug("Caught Pokemon: : %s", catch_attempt)
@@ -466,11 +491,10 @@ class PGoApi:
         spawn_point_id = pokemon['spawn_point_id']
         position = self._posf
         encounter = self.encounter(encounter_id=encounter_id,spawn_point_id=spawn_point_id,player_latitude=position[0],player_longitude=position[1]).call()['responses']['ENCOUNTER']
-        # self.log.info("Started Encounter: %s", encounter)
         if encounter['status'] == 1:
             capture_status = -1
             while capture_status != 0 and capture_status != 3:
-                catch_attempt = self.attempt_catch(encounter_id,spawn_point_id)
+                catch_attempt = self.attempt_catch(encounter_id, spawn_point_id, encounter)
                 capture_status = catch_attempt['status']
                 if capture_status == 1:
                     self.log.debug("Caught Pokemon: : %s", catch_attempt)

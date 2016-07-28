@@ -32,7 +32,7 @@ def f2h(float):
 
 def h2f(hex):
   return struct.unpack('<d', struct.pack('<Q', int(hex,16)))[0]
-  
+
 def to_camel_case(value):
   def camelcase():
     while True:
@@ -40,3 +40,11 @@ def to_camel_case(value):
 
   c = camelcase()
   return "".join(next(c)(x) if x else '_' for x in value.split("_"))
+
+def countmatching(iterable, *predicates):
+    v = [0] * len(predicates)
+    for e in iterable:
+        for i,p in enumerate(predicates):
+            if p(e):
+                v[i] += 1
+    return tuple(v)
