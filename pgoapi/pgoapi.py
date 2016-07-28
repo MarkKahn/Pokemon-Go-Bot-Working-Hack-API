@@ -26,6 +26,7 @@ from pgoapi.poke_utils import *
 from time import sleep
 from collections import defaultdict
 import os.path
+from termcolor import colored
 
 logger = logging.getLogger(__name__)
 BAD_ITEM_IDS = [1,2,3,101,102,103,201,701,702,703] #Potion, Super Potion, RazzBerry, BlukBerry, Revive
@@ -239,7 +240,7 @@ class PGoApi:
         try:
             response = request.request(api_endpoint, self._req_method_list, player_position)
         except ServerBusyOrOfflineException as e:
-            self.log.info('Server seems to be busy or offline - try again!')
+            self.log.info(colored('Server seems to be busy or offline - try again!', 'red'))
 
         # cleanup after call execution
         self.log.debug('Cleanup of request!')
@@ -415,7 +416,7 @@ class PGoApi:
                           inventory_item['inventory_item_data']['pokemon_family']['family_id'] == poke_info['candy_id'] and
                           inventory_item['inventory_item_data']['pokemon_family']['candy'] > ((poke_info.get('max_evolve_candies') or poke_info.get('candies') or 0) + self.config.get("KEEP_CANDIES", 0))
                         ):
-                          self.log.info("Evolving pokemon: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
+                          self.log.info(colored("Evolving pokemon:", "cyan") + " %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
                           self.evolve_pokemon(pokemon_id = pokemon['id'])
                           caught_pokemon[pokemon["pokemon_id"]].remove(pokemon)
 
@@ -424,10 +425,9 @@ class PGoApi:
             for pokemons in caught_pokemon.values():
                 if len(pokemons) > MIN_SIMILAR_POKEMON:
                     pokemons = sorted(pokemons, lambda x,y: cmp(x['cp'] * pokemonIVPercentage(x), y['cp'] * pokemonIVPercentage(y)), reverse=True)
-                    self.log.info('Duplicate Pokemon: %s', pokemons)
                     for pokemon in pokemons[MIN_SIMILAR_POKEMON:]:
                         self.log.debug("Releasing pokemon: %s", pokemon)
-                        self.log.info("Releasing pokemon: %s CP: %s, IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], str(pokemon['cp']), pokemonIVPercentage(pokemon))
+                        self.log.info(colored("Releasing pokemon:", "cyan") + " %s CP: %s, IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], str(pokemon['cp']), pokemonIVPercentage(pokemon))
                         self.release_pokemon(pokemon_id = pokemon["id"])
 
         return self.call()
@@ -448,12 +448,12 @@ class PGoApi:
                      capture_status = catch_attempt['status']
                      if capture_status == 1:
                          self.log.debug("Caught Pokemon: : %s", catch_attempt)
-                         self.log.info("Caught Pokemon:  %s", self.pokemon_data[str(resp['pokemon_data']['pokemon_id'])]['name'])
+                         self.log.info(colored("Caught Pokemon:", "green") + " %s", self.pokemon_data[str(resp['pokemon_data']['pokemon_id'])]['name'])
                          sleep(2) # If you want to make it faster, delete this line... would not recommend though
                          return catch_attempt
                      elif capture_status != 2:
                          self.log.debug("Failed Catch: : %s", catch_attempt)
-                         self.log.info("Failed to catch Pokemon:  %s", self.pokemon_data[str(resp['pokemon_data']['pokemon_id'])]['name'])
+                         self.log.info(colored("Failed to catch Pokemon:", "red") + " %s", self.pokemon_data[str(resp['pokemon_data']['pokemon_id'])]['name'])
                          return False
                      sleep(2) # If you want to make it faster, delete this line... would not recommend though
         except Exception as e:
@@ -474,12 +474,12 @@ class PGoApi:
                 capture_status = catch_attempt['status']
                 if capture_status == 1:
                     self.log.debug("Caught Pokemon: : %s", catch_attempt)
-                    self.log.info("Caught Pokemon:  %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
+                    self.log.info(colored("Caught Pokemon:", "green") + " %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
                     sleep(2) # If you want to make it faster, delete this line... would not recommend though
                     return catch_attempt
                 elif capture_status != 2:
                     self.log.debug("Failed Catch: : %s", catch_attempt)
-                    self.log.info("Failed to Catch Pokemon:  %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
+                    self.log.info(colored("Failed to Catch Pokemon:", "red") + " %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
                 return False
                 sleep(2) # If you want to make it faster, delete this line... would not recommend though
         return False

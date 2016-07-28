@@ -19,6 +19,7 @@ from pgoapi.location import getNeighbors
 from google.protobuf.internal import encoder
 from geopy.geocoders import GoogleV3
 from s2sphere import CellId, LatLng
+from termcolor import colored
 
 log = logging.getLogger(__name__)
 
@@ -88,7 +89,7 @@ def main():
         try:
             api.main_loop()
         except Exception as e:
-            log.error('Main loop has an ERROR, restarting %s', e)
+            log.error(colored('Main loop has an ERROR, restarting %s', 'red'), e)
             sleep(30)
             main()
 
