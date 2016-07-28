@@ -405,17 +405,20 @@ class PGoApi:
         inventory_items = self.get_inventory().call()['responses']['GET_INVENTORY']['inventory_delta']['inventory_items']
         pokeballs = self.count_pokeballs()
         probabilities = encounter['capture_probability']['capture_probability']
-        for i in range(1,4):
+        # Throw up to 5 pokeballs at any given pokemon, then give up (our % is pretty damn high)
+        for i in range(1,5):
+            ball_type = 1;
             if (
-                (pokeballs[i - 1] == 0) or
-                ((i<4) and pokeballs[i] and (probabilities[i] < self.min_probability_throw))
+                (pokeballs[ball_type - 1] == 0) or
+                ((ball_type<4) and pokeballs[ball_type] and (probabilities[ball_type] < self.min_probability_throw))
             ):
                 continue
 
+            pokeballs[ball_type] -= 1
             self.log.info('Throwing %s', ['PokeBall', 'GreatBall', 'UltraBall', 'MasterBall'][i-1])
             r = self.catch_pokemon(
                 normalized_reticle_size= 1.950,
-                pokeball = i,
+                pokeball = ball_type,
                 spin_modifier= 0.850,
                 hit_pokemon=True,
                 normalized_hit_position=1,
