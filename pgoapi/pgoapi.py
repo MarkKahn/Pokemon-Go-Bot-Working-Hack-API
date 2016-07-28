@@ -1,3 +1,4 @@
+# coding=latin-1
 # Credits to Tejado and the devs over at the subreddit /r/PokemonGoDev -TomTheBotter
 
 from __future__ import absolute_import
@@ -351,7 +352,7 @@ class PGoApi:
         if destinations:
             destinationNum = random.randint(0, min(5, len(destinations) - 1))
             fort = destinations[destinationNum]
-            self.log.info("Walking to Pokéstop at %s,%s", fort['latitude'], fort['longitude'])
+            self.log.info("Walking to Pokestop at %s,%s", fort['latitude'], fort['longitude'])
             self.walk_to((fort['latitude'], fort['longitude']))
             position = self._posf # FIXME ?
             res = self.fort_search(fort_id = fort['id'], fort_latitude=fort['latitude'],fort_longitude=fort['longitude'],player_latitude=position[0],player_longitude=position[1]).call()['responses']['FORT_SEARCH']
@@ -364,7 +365,7 @@ class PGoApi:
                 self.disk_encounter_pokemon(fort['lure_info'])
             return True
         else:
-            self.log.error("No Pokéstop to walk to!")
+            self.log.error("No Pokestop to walk to!")
             return False
 
     def catch_near_pokemon(self):
@@ -375,7 +376,7 @@ class PGoApi:
         # catch first pokemon:
         origin = (self._posf[0], self._posf[1])
         pokemon_distances = [(pokemon, distance_in_meters(origin,(pokemon['latitude'], pokemon['longitude']))) for pokemon in pokemons]
-        self.log.debug("Nearby pokémon: : %s", pokemon_distances)
+        self.log.debug("Nearby pokemon: : %s", pokemon_distances)
         for pokemon_distance in pokemon_distances:
             target = pokemon_distance
             return self.encounter_pokemon(target[0])
@@ -410,7 +411,7 @@ class PGoApi:
             ):
                 continue
 
-            self.log.info('Throwing %s', ['PokéBall', 'GreatBall', 'UltraBall', 'MasterBall'][i-1])
+            self.log.info('Throwing %s', ['PokeBall', 'GreatBall', 'UltraBall', 'MasterBall'][i-1])
             r = self.catch_pokemon(
                 normalized_reticle_size= 1.950,
                 pokeball = i,
@@ -456,7 +457,7 @@ class PGoApi:
                           inventory_item['inventory_item_data']['pokemon_family']['family_id'] == poke_info['candy_id'] and
                           inventory_item['inventory_item_data']['pokemon_family']['candy'] > ((poke_info.get('max_evolve_candies') or poke_info.get('candies') or 0) + self.config.get("KEEP_CANDIES", 0))
                         ):
-                          self.log.info(colored("Evolving pokémon:", "cyan") + " %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
+                          self.log.info(colored("Evolving pokemon:", "cyan") + " %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
                           self.evolve_pokemon(pokemon_id = pokemon['id'])
                           caught_pokemon[pokemon["pokemon_id"]].remove(pokemon)
 
@@ -472,7 +473,7 @@ class PGoApi:
                     for pokemon in pokemons[MIN_SIMILAR_POKEMON:]:
                         if pokemon['cp'] < self.MIN_KEEP_CP:
                             self.log.debug("Releasing pokemon: %s", pokemon)
-                            self.log.info(colored("Releasing pokémon:", "cyan") + " %s CP: %s, IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], str(pokemon['cp']), pokemonIVPercentage(pokemon))
+                            self.log.info(colored("Releasing pokemon:", "cyan") + " %s CP: %s, IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], str(pokemon['cp']), pokemonIVPercentage(pokemon))
                             self.release_pokemon(pokemon_id = pokemon["id"])
 
         return self.call()
@@ -492,14 +493,14 @@ class PGoApi:
                      capture_status = catch_attempt['status']
                      if capture_status == 1:
                          pokemon = resp['pokemon_data']
-                         self.log.debug("Caught Pokémon: : %s", catch_attempt)
+                         self.log.debug("Caught Pokemon: : %s", catch_attempt)
                          self.log.info(resp)
-                         self.log.info(colored("! Caught pokémon:", "green") + " %s CP: %s, IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], str(pokemon['cp']), pokemonIVPercentage(pokemon))
+                         self.log.info(colored("Caught pokemon:", "green") + " %s CP: %s, IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], str(pokemon['cp']), pokemonIVPercentage(pokemon))
                          sleep(2) # If you want to make it faster, delete this line... would not recommend though
                          return catch_attempt
                      elif capture_status != 2:
                          self.log.debug("Failed Catch: : %s", catch_attempt)
-                         self.log.info(colored("Failed to catch Pokémon:", "red") + " %s", self.pokemon_data[str(resp['pokemon_data']['pokemon_id'])]['name'])
+                         self.log.info(colored("Failed to catch Pokemon:", "red") + " %s", self.pokemon_data[str(resp['pokemon_data']['pokemon_id'])]['name'])
                          return False
                      sleep(2) # If you want to make it faster, delete this line... would not recommend though
         except Exception as e:
@@ -510,9 +511,9 @@ class PGoApi:
     def encounter_pokemon(self,pokemon):
         encounter_id = pokemon['encounter_id']
         spawn_point_id = pokemon['spawn_point_id']
-        pokemon = pokemon['wild_pokemon']['pokemon_data']
         position = self._posf
         encounter = self.encounter(encounter_id=encounter_id,spawn_point_id=spawn_point_id,player_latitude=position[0],player_longitude=position[1]).call()['responses']['ENCOUNTER']
+        pokemon = encounter['wild_pokemon']['pokemon_data']
         if encounter['status'] == 1:
             capture_status = -1
             while capture_status != 0 and capture_status != 3:
@@ -520,12 +521,12 @@ class PGoApi:
                 capture_status = catch_attempt['status']
                 if capture_status == 1:
                     self.log.debug("Caught Pokemon: : %s", catch_attempt)
-                    self.log.info(colored("Caught pokémon:", "green") + " %s CP: %s, IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], str(pokemon['cp']), pokemonIVPercentage(pokemon))
+                    self.log.info(colored("Caught pokemon:", "green") + " %s CP: %s, IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], str(pokemon['cp']), pokemonIVPercentage(pokemon))
                     sleep(2) # If you want to make it faster, delete this line... would not recommend though
                     return catch_attempt
                 elif capture_status != 2:
                     self.log.debug("Failed Catch: : %s", catch_attempt)
-                    self.log.info(colored("Failed to Catch Pokémon:", "red") + " %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
+                    self.log.info(colored("Failed to Catch Pokemon:", "red") + " %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
                 return False
                 sleep(2) # If you want to make it faster, delete this line... would not recommend though
         return False
