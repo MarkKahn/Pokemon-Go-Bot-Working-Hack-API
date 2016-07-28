@@ -526,7 +526,7 @@ class PGoApi:
             while capture_status != 0 and capture_status != 3:
                 catch_attempt = self.attempt_catch(encounter_id, spawn_point_id, encounter)
 
-                if not 'status' in catch_attempt:
+                if catch_attempt is None:
                     self.log.info(colored("Account seems to be banned!  Sleeping for 10 minutes", "red"))
                     sleep(10 * 60)
 
