@@ -385,7 +385,11 @@ class PGoApi:
     def nearby_map_objects(self):
         position = self.get_position()
         neighbors = getNeighbors(self._posf)
-        return self.get_map_objects(latitude=position[0], longitude=position[1], since_timestamp_ms=[0]*len(neighbors), cell_id=neighbors).call()
+        self.log.info(position)
+        self.log.info(neighbors)
+        data = self.get_map_objects(latitude=position[0], longitude=position[1], since_timestamp_ms=[0]*len(neighbors), cell_id=neighbors).call()
+        self.log.info(data)
+        return data
 
     def count_pokeballs(self):
         pokeballs = [0] * 4
@@ -518,6 +522,11 @@ class PGoApi:
             capture_status = -1
             while capture_status != 0 and capture_status != 3:
                 catch_attempt = self.attempt_catch(encounter_id, spawn_point_id, encounter)
+
+                if not 'status' in catch_attempt:
+                    self.log.info(colored("Account seems to be banned!  Sleeping for 10 minutes", "red"))
+                    sleep(10 * 60)
+
                 capture_status = catch_attempt['status']
                 if capture_status == 1:
                     self.log.debug("Caught Pokemon: : %s", catch_attempt)
@@ -530,8 +539,6 @@ class PGoApi:
                 return False
                 sleep(2) # If you want to make it faster, delete this line... would not recommend though
         return False
-
-
 
     def login(self, provider, username, password, cached=False):
         if not isinstance(username, basestring) or not isinstance(password, basestring):
