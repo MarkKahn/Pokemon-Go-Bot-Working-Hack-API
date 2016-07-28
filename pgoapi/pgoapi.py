@@ -219,7 +219,7 @@ class PGoApi:
         self.do_catch_pokemon = config.get("CATCH_POKEMON", True)
         self.min_probability_throw = config.get("MIN_PROBABILITY_THROW", 0.5)
         self.print_info = print_info
-        self.MIN_KEEP_CP = conig.get("MIN_KEEP_CP", 1000)
+        self.MIN_KEEP_CP = config.get("MIN_KEEP_CP", 1000)
 
     def call(self):
         if not self._req_method_list:
@@ -263,7 +263,7 @@ class PGoApi:
 
     def set_position(self, lat, lng, alt):
         self.log.debug('Set Position - Lat: %s Long: %s Alt: %s', lat, lng, alt)
-        self._posf = (lat,lng,alt)
+        self._posf = (lat, lng, alt)
         self._position_lat = f2i(lat)
         self._position_lng = f2i(lng)
         self._position_alt = f2i(alt)
@@ -297,9 +297,11 @@ class PGoApi:
             self.get_inventory()
 
         res = self.call()
+
         if res.get("direction",-1) == 102:
             self.log.error("There were a problem responses for api call: %s. Restarting!!!", res)
             raise AuthException("Token probably expired?")
+
         self.log.debug('Heartbeat dictionary: \n\r{}'.format(json.dumps(res, indent=2)))
 
         if 'GET_PLAYER' in res['responses']:
@@ -312,10 +314,13 @@ class PGoApi:
             with open("accounts/%s.json" % self.config['username'], "w") as f:
                 res['responses']['lat'] = self._posf[0]
                 res['responses']['lng'] = self._posf[1]
+                res['responses']['alt'] = self._posf[2]
                 f.write(json.dumps(res['responses'], indent=2))
+
             if self.print_info:
                 self.log.info(get_inventory_data(res, self.pokemon_data))
                 self.print_info = False
+
             self.log.debug(self.cleanup_inventory(res['responses']['GET_INVENTORY']['inventory_delta']['inventory_items']))
 
         self._heartbeat_number += 1
@@ -325,7 +330,7 @@ class PGoApi:
         self._walk_count += 1
         steps = get_route(self._posf, loc, self.config.get("USE_GOOGLE", False), self.config.get("GMAPS_API_KEY", ""))
         for step in steps:
-            for i,next_point in enumerate(get_increments(self._posf,step,self.config.get("STEP_SIZE", 200))):
+            for i, next_point in enumerate(get_increments(self._posf, step, self.config.get("STEP_SIZE", 200))):
                 self.set_position(*next_point)
                 self.heartbeat()
 #                self.log.info("Sleeping before next heartbeat")
@@ -346,7 +351,7 @@ class PGoApi:
         if destinations:
             destinationNum = random.randint(0, min(5, len(destinations) - 1))
             fort = destinations[destinationNum]
-            self.log.info("Walking to fort at %s,%s", fort['latitude'], fort['longitude'])
+            self.log.info("Walking to Pokéstop at %s,%s", fort['latitude'], fort['longitude'])
             self.walk_to((fort['latitude'], fort['longitude']))
             position = self._posf # FIXME ?
             res = self.fort_search(fort_id = fort['id'], fort_latitude=fort['latitude'],fort_longitude=fort['longitude'],player_latitude=position[0],player_longitude=position[1]).call()['responses']['FORT_SEARCH']
@@ -359,7 +364,7 @@ class PGoApi:
                 self.disk_encounter_pokemon(fort['lure_info'])
             return True
         else:
-            self.log.error("No fort to walk to!")
+            self.log.error("No Pokéstop to walk to!")
             return False
 
     def catch_near_pokemon(self):
@@ -370,7 +375,7 @@ class PGoApi:
         # catch first pokemon:
         origin = (self._posf[0], self._posf[1])
         pokemon_distances = [(pokemon, distance_in_meters(origin,(pokemon['latitude'], pokemon['longitude']))) for pokemon in pokemons]
-        self.log.debug("Nearby pokemon: : %s", pokemon_distances)
+        self.log.debug("Nearby pokémon: : %s", pokemon_distances)
         for pokemon_distance in pokemon_distances:
             target = pokemon_distance
             return self.encounter_pokemon(target[0])
@@ -405,7 +410,7 @@ class PGoApi:
             ):
                 continue
 
-            self.log.info('Throwing %s', ['PokeBall', 'GreatBall', 'UltraBall', 'MasterBall'][i-1])
+            self.log.info('Throwing %s', ['PokéBall', 'GreatBall', 'UltraBall', 'MasterBall'][i-1])
             r = self.catch_pokemon(
                 normalized_reticle_size= 1.950,
                 pokeball = i,
@@ -451,7 +456,7 @@ class PGoApi:
                           inventory_item['inventory_item_data']['pokemon_family']['family_id'] == poke_info['candy_id'] and
                           inventory_item['inventory_item_data']['pokemon_family']['candy'] > ((poke_info.get('max_evolve_candies') or poke_info.get('candies') or 0) + self.config.get("KEEP_CANDIES", 0))
                         ):
-                          self.log.info(colored("Evolving pokemon:", "cyan") + " %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
+                          self.log.info(colored("Evolving pokémon:", "cyan") + " %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
                           self.evolve_pokemon(pokemon_id = pokemon['id'])
                           caught_pokemon[pokemon["pokemon_id"]].remove(pokemon)
 
@@ -467,7 +472,7 @@ class PGoApi:
                     for pokemon in pokemons[MIN_SIMILAR_POKEMON:]:
                         if pokemon['cp'] < self.MIN_KEEP_CP:
                             self.log.debug("Releasing pokemon: %s", pokemon)
-                            self.log.info(colored("Releasing pokemon:", "cyan") + " %s CP: %s, IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], str(pokemon['cp']), pokemonIVPercentage(pokemon))
+                            self.log.info(colored("Releasing pokémon:", "cyan") + " %s CP: %s, IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], str(pokemon['cp']), pokemonIVPercentage(pokemon))
                             self.release_pokemon(pokemon_id = pokemon["id"])
 
         return self.call()
@@ -486,13 +491,15 @@ class PGoApi:
                      catch_attempt = self.attempt_catch(encounter_id, fort_id, resp)
                      capture_status = catch_attempt['status']
                      if capture_status == 1:
-                         self.log.debug("Caught Pokemon: : %s", catch_attempt)
-                         self.log.info(colored("Caught Pokemon:", "green") + " %s", self.pokemon_data[str(resp['pokemon_data']['pokemon_id'])]['name'])
+                         pokemon = resp['pokemon_data']
+                         self.log.debug("Caught Pokémon: : %s", catch_attempt)
+                         self.log.info(resp)
+                         self.log.info(colored("! Caught pokémon:", "green") + " %s CP: %s, IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], str(pokemon['cp']), pokemonIVPercentage(pokemon))
                          sleep(2) # If you want to make it faster, delete this line... would not recommend though
                          return catch_attempt
                      elif capture_status != 2:
                          self.log.debug("Failed Catch: : %s", catch_attempt)
-                         self.log.info(colored("Failed to catch Pokemon:", "red") + " %s", self.pokemon_data[str(resp['pokemon_data']['pokemon_id'])]['name'])
+                         self.log.info(colored("Failed to catch Pokémon:", "red") + " %s", self.pokemon_data[str(resp['pokemon_data']['pokemon_id'])]['name'])
                          return False
                      sleep(2) # If you want to make it faster, delete this line... would not recommend though
         except Exception as e:
@@ -503,6 +510,7 @@ class PGoApi:
     def encounter_pokemon(self,pokemon):
         encounter_id = pokemon['encounter_id']
         spawn_point_id = pokemon['spawn_point_id']
+        pokemon = pokemon['wild_pokemon']['pokemon_data']
         position = self._posf
         encounter = self.encounter(encounter_id=encounter_id,spawn_point_id=spawn_point_id,player_latitude=position[0],player_longitude=position[1]).call()['responses']['ENCOUNTER']
         if encounter['status'] == 1:
@@ -512,12 +520,12 @@ class PGoApi:
                 capture_status = catch_attempt['status']
                 if capture_status == 1:
                     self.log.debug("Caught Pokemon: : %s", catch_attempt)
-                    self.log.info(colored("Caught Pokemon:", "green") + " %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
+                    self.log.info(colored("Caught pokémon:", "green") + " %s CP: %s, IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], str(pokemon['cp']), pokemonIVPercentage(pokemon))
                     sleep(2) # If you want to make it faster, delete this line... would not recommend though
                     return catch_attempt
                 elif capture_status != 2:
                     self.log.debug("Failed Catch: : %s", catch_attempt)
-                    self.log.info(colored("Failed to Catch Pokemon:", "red") + " %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
+                    self.log.info(colored("Failed to Catch Pokémon:", "red") + " %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'])
                 return False
                 sleep(2) # If you want to make it faster, delete this line... would not recommend though
         return False
@@ -552,15 +560,19 @@ class PGoApi:
 
         if not response:
             self.log.info('Login failed!')
+
         if os.path.isfile("auth_cache") and cached:
             response = pickle.load(open("auth_cache"))
+
         fname = "auth_cache_%s" % username
+
         if os.path.isfile(fname) and cached:
             response = pickle.load(open(fname))
         else:
             response = self.heartbeat()
             f = open(fname,"w")
             pickle.dump(response, f)
+
         if not response:
             self.log.info('Login failed!')
             return False
@@ -574,6 +586,9 @@ class PGoApi:
 
         if 'auth_ticket' in response:
             self._auth_provider.set_ticket(response['auth_ticket'].values())
+
+        if cached and ('lat' in response):
+            self.set_position(response['lat'], response['lng'], response['alt'])
 
         self.log.info('Finished RPC login sequence (app simulation)')
         self.log.info('Login process completed')
