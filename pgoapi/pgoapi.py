@@ -345,6 +345,9 @@ class PGoApi:
         map_cells = self.nearby_map_objects()['responses']['GET_MAP_OBJECTS']['map_cells']
         forts = PGoApi.flatmap(lambda c: c.get('forts', []), map_cells)
         if self._start_pos and self._walk_count % self.config.get("RETURN_START_INTERVAL") == 0:
+            sleep_time = self.config.get("RETURN_START_INTERVAL") / self.config.get("STEP_SIZE", 200) * 100
+            self.log.info(colored("Returning home and sleeping for %d seconds", "cyan"), sleep_time)
+            sleep(sleep_time)
             destinations = filtered_forts(self._start_pos, forts)
         else:
             destinations = filtered_forts(self._posf,forts)
