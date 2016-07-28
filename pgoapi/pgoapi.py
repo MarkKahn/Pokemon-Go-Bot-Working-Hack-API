@@ -219,6 +219,7 @@ class PGoApi:
         self.do_catch_pokemon = config.get("CATCH_POKEMON", True)
         self.min_probability_throw = config.get("MIN_PROBABILITY_THROW", 0.5)
         self.print_info = print_info
+        self.MIN_KEEP_CP = conig.get("MIN_KEEP_CP", 1000)
 
     def call(self):
         if not self._req_method_list:
@@ -464,12 +465,12 @@ class PGoApi:
                         reverse=True,
                     )
                     for pokemon in pokemons[MIN_SIMILAR_POKEMON:]:
-                        self.log.debug("Releasing pokemon: %s", pokemon)
-                        self.log.info(colored("Releasing pokemon:", "cyan") + " %s CP: %s, IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], str(pokemon['cp']), pokemonIVPercentage(pokemon))
-                        self.release_pokemon(pokemon_id = pokemon["id"])
+                        if pokemon['cp'] < self.MIN_KEEP_CP:
+                            self.log.debug("Releasing pokemon: %s", pokemon)
+                            self.log.info(colored("Releasing pokemon:", "cyan") + " %s CP: %s, IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], str(pokemon['cp']), pokemonIVPercentage(pokemon))
+                            self.release_pokemon(pokemon_id = pokemon["id"])
 
         return self.call()
-
 
     def disk_encounter_pokemon(self, lureinfo):
         if lureinfo['active_pokemon_id'] in IGNORE_POKEMON:
