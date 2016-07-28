@@ -84,14 +84,18 @@ def main():
 
     api = PGoApi(config.__dict__, pokemon_data, position, config.printstats)
 
-    if not api.login(config.auth_service, config.username, config.password, config.cached):
-        return
+    try:
+        api.login(config.auth_service, config.username, config.password, config.cached)
+    except Exception as e:
+        log.error(colored('Login failed, restarting [%s]', 'red'), e)
+        sleep(30)
+        main()
 
     while True:
         try:
             api.main_loop()
         except Exception as e:
-            log.error(colored('Main loop has an ERROR, restarting %s', 'red'), e)
+            log.error(colored('Main loop has an ERROR, restarting [%s]', 'red'), e)
             sleep(30)
             main()
 
