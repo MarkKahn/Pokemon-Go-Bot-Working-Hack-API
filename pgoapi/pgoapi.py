@@ -385,10 +385,7 @@ class PGoApi:
     def nearby_map_objects(self):
         position = self.get_position()
         neighbors = getNeighbors(self._posf)
-        self.log.info(position)
-        self.log.info(neighbors)
         data = self.get_map_objects(latitude=position[0], longitude=position[1], since_timestamp_ms=[0]*len(neighbors), cell_id=neighbors).call()
-        self.log.info(data)
         return data
 
     def count_pokeballs(self):
