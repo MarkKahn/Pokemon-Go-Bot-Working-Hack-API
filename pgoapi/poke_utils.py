@@ -16,6 +16,6 @@ def get_inventory_data(res, poke_data):
     )
 
     return ("\n" + os.linesep.join(map(lambda x: "{0}, CP {1}, IV {2:.2f}".format(
-        poke_data[str(x['pokemon_data']['pokemon_id'])]['name'].encode('ascii', 'ignore'),
+        poke_data[str(x['pokemon_data']['pokemon_id'])]['name'].encode('latin-1', 'ignore'),
         x['pokemon_data']['cp'],
         pokemonIVPercentage(x['pokemon_data'])), pokemon)))

@@ -571,7 +571,7 @@ class PGoApi:
             response = pickle.load(open(fname))
         else:
             response = self.heartbeat()
-            f = open(fname,"w")
+            f = open(fname, "w")
             pickle.dump(response, f)
 
         if not response:
@@ -588,8 +588,12 @@ class PGoApi:
         if 'auth_ticket' in response:
             self._auth_provider.set_ticket(response['auth_ticket'].values())
 
-        if cached and ('lat' in response):
-            self.set_position(response['lat'], response['lng'], response['alt'])
+        if cached and os.path.isfile("accounts/%s.json" % username):
+            with open("accounts/%s.json" % username, 'r') as file_contents:
+                jsonstr = file_contents.read()
+            account_json = json.loads(jsonstr)
+            self.log.info('restoring location to %f, %f', account_json['lat'], account_json['lng'])
+            self.set_position(account_json['lat'], account_json['lng'], account_json['alt'])
 
         self.log.info('Finished RPC login sequence (app simulation)')
         self.log.info('Login process completed')
