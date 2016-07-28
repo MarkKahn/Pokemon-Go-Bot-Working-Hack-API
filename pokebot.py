@@ -49,7 +49,8 @@ def init_config():
     parser.add_argument("-d", "--debug", help="Debug Mode", action='store_true')
     parser.add_argument("-c", "--cached", help="cached", action='store_true')
     parser.add_argument("-t", "--test", help="Only parse the specified location", action='store_true')
-    parser.set_defaults(DEBUG=False, TEST=False,CACHED=False)
+    parser.add_argument("-P", "--printstats", help="Print your pokemon CP & IV info and exit", action="store_true")
+    parser.set_defaults(DEBUG=False, TEST=False, CACHED=False)
     config = parser.parse_args()
     load = load['accounts'][int(config.__dict__['config_index'])]
     config.__dict__.update(load)
@@ -81,10 +82,11 @@ def main():
 
     pokemon_data = json.load(open("pokemon_data.json"))
 
-    api = PGoApi(config.__dict__, pokemon_data, position)
+    api = PGoApi(config.__dict__, pokemon_data, position, config.printstats)
 
     if not api.login(config.auth_service, config.username, config.password, config.cached):
         return
+
     while True:
         try:
             api.main_loop()

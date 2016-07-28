@@ -203,7 +203,7 @@ class PGoApi:
 
     API_ENTRY = 'https://pgorelease.nianticlabs.com/plfe/rpc'
 
-    def __init__(self, config, pokemon_data, start_pos):
+    def __init__(self, config, pokemon_data, start_pos, print_info):
 
         self.log = logging.getLogger(__name__)
         self._start_pos = start_pos
@@ -214,10 +214,11 @@ class PGoApi:
         self.set_position(*start_pos)
         self.RELEASE_DUPLICATES = config.get("RELEASE_DUPLICATE", 0)
         self._req_method_list = []
-        self._heartbeat_number = 5
+        self._heartbeat_number = 8
         self.pokemon_data = pokemon_data
         self.do_catch_pokemon = config.get("CATCH_POKEMON", True)
         self.min_probability_throw = config.get("MIN_PROBABILITY_THROW", 0.5)
+        self.print_info = print_info
 
     def call(self):
         if not self._req_method_list:
@@ -252,6 +253,7 @@ class PGoApi:
     def list_curr_methods(self):
         for i in self._req_method_list:
             print("{} ({})".format(RequestType.Name(i),i))
+
     def set_logger(self, logger):
         self._ = logger or logging.getLogger(__name__)
 
@@ -292,6 +294,7 @@ class PGoApi:
         if self._heartbeat_number % 10 == 0:
             self.check_awarded_badges()
             self.get_inventory()
+
         res = self.call()
         if res.get("direction",-1) == 102:
             self.log.error("There were a problem responses for api call: %s. Restarting!!!", res)
@@ -309,7 +312,9 @@ class PGoApi:
                 res['responses']['lat'] = self._posf[0]
                 res['responses']['lng'] = self._posf[1]
                 f.write(json.dumps(res['responses'], indent=2))
-#            self.log.info(get_inventory_data(res, self.pokemon_data))
+            if self.print_info:
+                self.log.info(get_inventory_data(res, self.pokemon_data))
+                self.print_info = False
             self.log.debug(self.cleanup_inventory(res['responses']['GET_INVENTORY']['inventory_delta']['inventory_items']))
 
         self._heartbeat_number += 1
@@ -394,12 +399,12 @@ class PGoApi:
         probabilities = encounter['capture_probability']['capture_probability']
         for i in range(1,4):
             if (
-                not pokeballs[i - 1] or
+                (pokeballs[i - 1] == 0) or
                 ((i<4) and pokeballs[i] and (probabilities[i] < self.min_probability_throw))
             ):
                 continue
 
-            self.log.info('Throwing %s', ['PokeBall', 'GreatBall', 'UltraBall', 'MasterBall'][i])
+            self.log.info('Throwing %s', ['PokeBall', 'GreatBall', 'UltraBall', 'MasterBall'][i-1])
             r = self.catch_pokemon(
                 normalized_reticle_size= 1.950,
                 pokeball = i,
@@ -432,7 +437,11 @@ class PGoApi:
         # evolve the strongest pokemon if possible
         for pokemons in caught_pokemon.values():
             if len(pokemons) > MIN_SIMILAR_POKEMON:
-                pokemons = sorted(pokemons, lambda x,y: cmp(x['cp']*pokemonIVPercentage(x), y['cp']*pokemonIVPercentage(y)), reverse=True)
+                pokemons = sorted(
+                    pokemons,
+                    lambda x,y: cmp(pokemonIVPercentage(x), pokemonIVPercentage(y)) or cmp(x['cp'], y['cp']),
+                    reverse=True,
+                )
                 for pokemon in pokemons[:len(pokemons) - MIN_SIMILAR_POKEMON]:
                     poke_info = self.pokemon_data[str(pokemon['pokemon_id'])]
                     for inventory_item in inventory_items:
@@ -449,7 +458,11 @@ class PGoApi:
         if self.RELEASE_DUPLICATES:
             for pokemons in caught_pokemon.values():
                 if len(pokemons) > MIN_SIMILAR_POKEMON:
-                    pokemons = sorted(pokemons, lambda x,y: cmp(x['cp'] * pokemonIVPercentage(x), y['cp'] * pokemonIVPercentage(y)), reverse=True)
+                    pokemons = sorted(
+                        pokemons,
+                        lambda x,y: cmp(pokemonIVPercentage(x), pokemonIVPercentage(y)) or cmp(x['cp'], y['cp']),
+                        reverse=True,
+                    )
                     for pokemon in pokemons[MIN_SIMILAR_POKEMON:]:
                         self.log.debug("Releasing pokemon: %s", pokemon)
                         self.log.info(colored("Releasing pokemon:", "cyan") + " %s CP: %s, IV: %s", self.pokemon_data[str(pokemon['pokemon_id'])]['name'], str(pokemon['cp']), pokemonIVPercentage(pokemon))
@@ -510,7 +523,7 @@ class PGoApi:
 
 
 
-    def login(self, provider, username, password,cached=False):
+    def login(self, provider, username, password, cached=False):
         if not isinstance(username, basestring) or not isinstance(password, basestring):
             raise AuthException("Username/password not correctly specified")
 
