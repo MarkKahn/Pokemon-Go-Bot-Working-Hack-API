@@ -410,6 +410,7 @@ class PGoApi:
         probabilities = encounter['capture_probability']['capture_probability']
         # Throw up to 5 pokeballs at any given pokemon, then give up (our % is pretty damn high)
         for i in range(1,5):
+            sleep(2)
             ball_type = 1;
             while (
                 (pokeballs[ball_type - 1] == 0) or
@@ -431,14 +432,20 @@ class PGoApi:
                 normalized_hit_position=1,
                 encounter_id=encounter_id,
                 spawn_point_guid=spawn_point_guid,
-                ).call()['responses']['CATCH_POKEMON']
+            ).call()['responses']
+
+            if 'CATCH_POKEMON' in r:
+                r = r['CATCH_POKEMON']
+            else:
+                self.log.info(colored("Error catching pokemon: %s", "red"), r)
+                sleep(3)
+                continue
 
             if "status" in r:
                 return r
-            elif r is None:
-                self.log.info(colored("Account seems to be banned!  Sleeping for 10 minutes", "red"))
-                sleep(10 * 60)
 
+        # failed to catch
+        return {'status': 3}
 
     def cleanup_inventory(self, inventory_items=None):
         if not inventory_items:
