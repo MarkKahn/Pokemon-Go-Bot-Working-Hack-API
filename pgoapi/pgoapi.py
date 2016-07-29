@@ -411,14 +411,18 @@ class PGoApi:
         # Throw up to 5 pokeballs at any given pokemon, then give up (our % is pretty damn high)
         for i in range(1,5):
             ball_type = 1;
-            if (
+            while (
                 (pokeballs[ball_type - 1] == 0) or
-                ((ball_type<4) and pokeballs[ball_type] and (probabilities[ball_type] < self.min_probability_throw))
+                ((ball_type <= 4) and pokeballs[ball_type] and (probabilities[ball_type - 1] < self.min_probability_throw))
             ):
-                continue
+                ball_type += 1
 
-            pokeballs[ball_type] -= 1
-            self.log.info('Throwing %s', ['PokeBall', 'GreatBall', 'UltraBall', 'MasterBall'][i-1])
+            if pokeballs[ball_type - 1] == 0:
+                self.log.info(colored("No pokeballs to throw, abandoning catch attempt!", "red"))
+                return {'status': 2}
+
+            pokeballs[ball_type - 1] -= 1
+            self.log.info('Throwing %s', ['PokeBall', 'GreatBall', 'UltraBall', 'MasterBall'][ball_type - 1])
             r = self.catch_pokemon(
                 normalized_reticle_size= 1.950,
                 pokeball = ball_type,
@@ -428,8 +432,13 @@ class PGoApi:
                 encounter_id=encounter_id,
                 spawn_point_guid=spawn_point_guid,
                 ).call()['responses']['CATCH_POKEMON']
+
             if "status" in r:
                 return r
+            elif r is None:
+                self.log.info(colored("Account seems to be banned!  Sleeping for 10 minutes", "red"))
+                sleep(10 * 60)
+
 
     def cleanup_inventory(self, inventory_items=None):
         if not inventory_items:
@@ -525,10 +534,6 @@ class PGoApi:
             capture_status = -1
             while capture_status != 0 and capture_status != 3:
                 catch_attempt = self.attempt_catch(encounter_id, spawn_point_id, encounter)
-
-                if catch_attempt is None:
-                    self.log.info(colored("Account seems to be banned!  Sleeping for 10 minutes", "red"))
-                    sleep(10 * 60)
 
                 capture_status = catch_attempt['status']
                 if capture_status == 1:
